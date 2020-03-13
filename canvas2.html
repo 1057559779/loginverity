@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .bigbox{
+            width: 310px;
+        }
+        #canvas{
+            position: relative;
+        }
+        #block{
+           position: absolute;
+           left: 12px;
+           top: 7.5px;
+        }
+        .pathway{
+            position: relative;
+            width: 100%;
+            background-color: #DFE1E2;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .pathwayText{
+
+        }
+        .pathwayBtn{
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: #F9F9F9;
+            border-radius:50px;
+            left: 0px;
+            top: -5px;
+        }
+    </style>
+</head>
+<body>
+<div class="bigbox">
+    <!--真图片-->
+    <canvas width="310" height="155" id="canvas"></canvas>
+    <!--拼图滑块-->
+    <canvas width="310" id="block"></canvas>
+    <!--拉动轨道-->
+    <div class="pathway">
+        <div class="pathwayText">拖动滑块完成拼图
+            <div class="pathwayBtn" id="pathwayBtn"></div>
+        </div>
+    </div>
+</div>
+<script>
+    //想要调整缺口的位置，可以改变box_x的坐标
+    var box_x = 160, y = 40, w = 42, r = 10, PI = Math.PI
+    var canvas = document.getElementById('canvas')
+    var block = document.getElementById('block')
+    var canvas_ctx = canvas.getContext('2d')
+    var block_ctx = block.getContext('2d')
+    var img = document.createElement('img')
+    img.src = 'image/one.jpg'
+    img.onload = function() {
+       canvas_ctx.drawImage(img, 0, 0, 310, 155)
+       block_ctx.drawImage(img, 0, 0, 310, 155)
+
+      var blockWidth = w + r * 2
+      var _y = y - r * 2 + 2 // 滑块实际的y坐标
+      var ImageData = block_ctx.getImageData(box_x, _y, blockWidth, blockWidth)
+      block.width = blockWidth
+      block_ctx.putImageData(ImageData, 0, _y)
+    };
+    //绘制
+    draw(canvas_ctx, 'fill')
+    draw(block_ctx, 'clip')
+
+    //画拼图
+    function draw(ctx, operation) {
+        //缺口
+        if(operation=='fill'){
+            ctx.beginPath()
+            // ctx.fillStyle = 'rgb(0,0,0)'
+            ctx.moveTo(box_x,y)
+            ctx.lineTo(box_x+w/2,y)
+            ctx.arc(box_x+w/2,y-r+2, r,0,2*PI)
+            ctx.lineTo(box_x+w/2,y)
+            ctx.lineTo(box_x+w,y)
+            ctx.lineTo(box_x+w,y+w/2)
+            ctx.arc(box_x+w+r-2,y+w/2,r,0,2*PI)
+            ctx.lineTo(box_x+w,y+w/2)
+            ctx.lineTo(box_x+w,y+w)
+            ctx.lineTo(box_x,y+w)
+            ctx.lineTo(box_x,y)
+            ctx.fill()
+            ctx.beginPath()
+            ctx.arc(box_x,y+w/2, r,1.5*PI,0.5*PI)
+            ctx.globalCompositeOperation = "xor"
+            ctx.fill()
+        }else {
+            //拼图
+            ctx.beginPath()
+            ctx.moveTo(box_x,y)
+            ctx.lineTo(box_x+w/2,y)
+            ctx.arc(box_x+w/2,y-r+2, r,0,2*PI)
+            ctx.lineTo(box_x+w/2,y)
+            ctx.lineTo(box_x+w,y)
+            ctx.lineTo(box_x+w,y+w/2)
+            ctx.arc(box_x+w+r-2,y+w/2,r,0,2*PI)
+            ctx.lineTo(box_x+w,y+w/2)
+            ctx.lineTo(box_x+w,y+w)
+            ctx.lineTo(box_x,y+w)
+            ctx.lineTo(box_x,y)
+            ctx.clip()
+            ctx.beginPath()
+            ctx.arc(box_x,y+w/2, r,1.5*PI,0.5*PI)
+            ctx.globalCompositeOperation = "xor"
+            ctx.fill()
+        }
+
+    }
+        //移动
+        var box=document.getElementById('pathwayBtn');
+        //鼠标按下事件
+        box.onmousedown=function(ev){
+            var ev=window.event||ev;
+            //屏幕的可视宽高   作控制拖拽范围用
+            var cW=document.documentElement.clientWidth;
+            //元素的占位宽
+            var bW=box.offsetWidth;
+            console.log(bW+""+cW)
+            //计算鼠标按下的位置
+            var disX=ev.clientX-box.offsetLeft;
+            console.log(disX+"_"+ev.clientX+"_")
+            //添加移动事件
+            document.onmousemove =function(ev){
+                var ev=window.event||ev;
+                //计算鼠标移动的距离
+                var x=ev.clientX-disX;
+
+                //判断可拖拽的范围，限定在屏幕可视区域
+                if(x<12){
+                    box.style.left='2px';
+                    //cW-bW计算的是box的left属性可设置的最大值，大于它的时候就会超出可视区域
+                }else{
+                    if(x<260){
+                        box.style.left=x-12+'px';
+                        block.style.left=x+'px';
+                    }
+                }
+
+            }
+            //鼠标抬起事件
+            document.onmouseup=function(){
+                //当鼠标抬起时，清除这两个事件
+                document.onmouseleave=document.onmousemove=document.onmouseup=null;
+                let pathwayBtn=document.getElementById('pathwayBtn');
+                let nownum = parseInt(pathwayBtn.style.left.split("px")[0])
+                if(nownum>box_x-5 && nownum<box_x+5){
+                    console.log("验证成功")
+                    pathwayBtn.style.left="0px"
+                    block.style.left="12px"
+                }else {
+                    console.log("验证失败")
+                    pathwayBtn.style.left="0px"
+                    block.style.left="12px"
+                }
+            }
+        }
+
+</script>
+</body>
+</html>
